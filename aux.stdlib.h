@@ -11,6 +11,7 @@
 namespace astd
 {
 	bool is_number(const std::string &);
+	bool is_integer(const std::string &);
 	bool is_c2ii(std::string const & s);
 	bool is_word(const std::string &);
 	bool is_spd(const char &);
@@ -18,6 +19,8 @@ namespace astd
 	//
 	bool is_shell(std::vector<std::string> const & );
 	bool is_funct(std::vector<std::string> const & );
+	bool is_ecp(std::vector<std::string> const &);
+	bool is_ecpFunct(std::vector<std::string> const &);
 
 	bool is_comment(const std::string &, const char);
 	std::string cut_comment(const std::string &, const char);
@@ -119,6 +122,13 @@ bool astd::is_number(std::string const & s)
 	return false;
 }
 
+bool astd::is_integer(std::string const & s)
+{
+	for(int i = 0; i < s.size(); ++i)
+		if( !isdigit( s[i] ) ) return false;
+	return true;
+}
+
 bool astd::is_word(std::string const & s)
 {
 	for(int i = 0; i < s.size(); ++i)
@@ -179,6 +189,34 @@ bool astd::is_funct(std::vector<std::string> const & vs)
 	if( !astd::is_c2ii( vs[1] ) ) return false;
 	for(int i = 2; i < vs.size(); ++i)
 		if( !astd::is_number( vs[i] ) ) return false;
+	return true;
+}
+
+bool astd::is_ecp(std::vector<std::string> const & vs)
+{
+	if( vs.size() != 5 ) return false;
+	//if( vs.size() < 5 ) return false;
+	if( !astd::is_word(vs[0]) || !astd::is_word( vs[1] ) ) return false;
+	if( vs[0] != "ecp" && vs[0] != "ECP" ) return false;// FIXME: check if vs[0] is "ecp"
+	for(int i = 2; i < vs.size(); ++i)
+		if( !astd::is_integer( vs[i] ) ) return false;
+	return true;
+}
+bool is_ecpFunct(std::vector<std::string> const & vs)
+{
+	if( vs.size() < 4 ) return false;
+	if( !astd::is_integer( vs[0] ) ) return false;
+	if( (vs.size()-1)%3 ) return false;
+	int size = (vs.size()-1)/3;
+	if( astd::stoi( vs[0] ) != size ) return false;
+	std::string const * p_s = &vs[1];
+	for(int i = 0; i < size; ++i)
+	{
+		if( !astd::is_integer(*p_s) ) return false;
+		if( !astd::is_number(*(p_s + 1)) ) return false;
+		if( !astd::is_number(*(p_s + 2)) ) return false;
+		p_s += 3;
+	}
 	return true;
 }
 

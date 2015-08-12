@@ -71,9 +71,9 @@ int parse(char const * file)
 	for(int i = 0; i < vs.size(); ++i)
 		std::cout << vs[i] << std::endl;
 	std::cout << "size : " << vs.size() << std::endl << std::endl;
-	//----------------------------------------------------------//
+	//----------------------------------------//
 	shell_parse<T>( bas_sh, &vs[0], vs.size() );
-	//----------------------------------------------------------//
+	//----------------------------------------//
 	std::cout << std::endl;
 	std::cout << "shell : " << bas_sh.shell() << std::endl;
 	std::cout << "shell.size : " << bas_sh.size() << std::endl;
@@ -109,6 +109,40 @@ int read_lines(vector<string> & vs, char const * file)
 }
 
 template<class T>
+int basisSet_parse(vector<basis_shell<T> > & atom_basis, string const * vs, size_t size)
+{
+	vector<int> vi;
+	vi.reserve(20);
+	vector<string> buf;
+	buf.reserve( 4 );
+	for(int i = 0; i < size; ++i)
+	{
+		astd::strtok_s(buf, vs[i], " \t;,", 4);
+		if( astd::is_shell( buf ) ) vi.push_back( i );
+	}
+	vi.push_back( size );
+	//int * p = &vi[0];
+	//for(int i = 0; i < vs.size(); ++i)
+	//{
+	//	if( *p == i ){ p++; std::cout << "-----------------------------------------" << std::endl;}
+	//	std::cout << std::setw(2) << i << ' ' << vs[i] << std::endl;
+	//}
+	//std::cout << "-----------------------------------------" << std::endl;
+	//for(int i = 0; i < vi.size(); ++i)
+	//	std::cout << vi[i] << std::endl;
+	//std::cout << "size : " << vi.size() << std::endl << std::endl;
+	atom_basis.resize( vi.size()-1 );
+	//int * pz = &vi[0];
+	for(int i = 0; i < atom_basis.size(); ++i)
+	{
+		//shell_parse<T>( atom_basis[i], &vs[ *pz ], *(pz+1)-*pz );
+		//p++;
+		shell_parse<T>( atom_basis[i], &vs[ vi[i] ], vi[i+1]-vi[i] );
+	}
+	return 0;
+}
+
+template<class T>
 int molpro_basis_parse(char const * file)
 {
 	vector<basis_shell<T> > atom_basis;
@@ -122,33 +156,10 @@ int molpro_basis_parse(char const * file)
 	for(int i = 0; i < vs.size(); ++i)
 		std::cout << vs[i] << std::endl;
 	std::cout << "size : " << vs.size() << std::endl << std::endl;
-	vector<int> vi;
-	vi.reserve(20);
-	vector<string> buf;
-	buf.reserve( 4 );
-	for(int i = 0; i < vs.size(); ++i)
-	{
-		astd::strtok_s(buf, vs[i], " \t;,", 4);
-		if( astd::is_shell( buf ) ) vi.push_back( i );
-	}
-	vi.push_back( vs.size() );
-	int * p = &vi[0];
-	for(int i = 0; i < vs.size(); ++i)
-	{
-		if( *p == i ){ p++; std::cout << "-----------------------------------------" << std::endl;}
-		std::cout << std::setw(2) << i << ' ' << vs[i] << std::endl;
-	}
-	std::cout << "-----------------------------------------" << std::endl;
-	for(int i = 0; i < vi.size(); ++i)
-		std::cout << vi[i] << std::endl;
-	std::cout << "size : " << vi.size() << std::endl << std::endl;
-	atom_basis.resize( vi.size()-1 );
-	for(int i = 0; i < atom_basis.size(); ++i)
-	{
-		shell_parse<T>( atom_basis[i], &vs[ vi[i] ], vi[i+1]-vi[i] );
-		std::cout << std::endl;
-	}
-
+	//--------------------------------//
+	basisSet_parse<T>( atom_basis, &vs[0], vs.size() );
+	//--------------------------------//
+	return 0;
 }
 
 int parse_d(char const * file)
