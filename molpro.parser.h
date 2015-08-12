@@ -93,7 +93,7 @@ int basisF_parse(basis_shell<T> & bas_sh, std::vector<std::string> & buf, std::s
 template<class T>
 int basisSet_parse(basis_shell<T> & bas_sh, std::vector<std::string> & buf, std::string const * vs, std::string const * vs_end)
 {
-	bas_sh.shell() = astd::spd( buf[0][0] );
+	bas_sh.shell() = astd::shell( buf[0][0] );
 	bas_sh.atom() = buf[1];
 	astd::stof<vector<T> >( bas_sh.alp(), &buf[2], buf.size()-2);
 	return basisF_parse(bas_sh, buf, vs+1, vs_end);
@@ -101,17 +101,19 @@ int basisSet_parse(basis_shell<T> & bas_sh, std::vector<std::string> & buf, std:
 
 //------------------------------- ECP PARSE --------------------------------//
 template<class T>
-int ecpFunction_parse( ecp_function<T> & ecp_f, std::vector<std::string> const & buf )
+int ecpFunction_parse( ecp_function<T> & ecp_f, std::vector<std::string> & buf, std::string const * vs, std::string const * vs_end )
 {
 	ecp_f.resize( astd::stoi( buf[0] ) );
+	check_pointer<std::string>( vs+ecp_f.size()-1, vs_end );
 	ecp_gauss<T> * p_g = &ecp_f[0];
-	std::string const * p_s = &buf[1];
 	for(int i = 0; i < ecp_f.size(); ++i)
 	{
-		p_g->n()   = astd::stoi( *p_s );
-		p_g->alp() = astd::stoi( *(p_s + 1) );
-		p_g->d()   = astd::stoi( *(p_s + 2) );
-		p_s += 3;
+		astd::strtok_s( buf, vs[i], " \t," );
+		if( !astd::is_ecpFunct( buf ) ) return 1;
+		p_g->n()   = astd::stoi( buf[0] );
+		p_g->alp() = astd::stof( buf[1] );
+		p_g->d()   = astd::stof( buf[2] );
+		p_g++;
 	}
 	return 0;
 }
@@ -120,17 +122,23 @@ template<class T>
 int ecpF_parse(semilocal_ecp<T> & sl_ecp, std::vector<std::string> & buf, std::string const * vs, std::string const * vs_end)
 {
 	check_pointer<std::string>( vs, vs_end );
+	sl_ecp.resize( sl_ecp.n_sc() + sl_ecp.n_so() + 1 );
+	std::string const * ps = vs;
 	for(int i = 0; i < sl_ecp.size(); ++i)
 	{
-		astd::strtok_s(buf, vs[i], " \t;,");
-		if( !astd::is_ecpFunct(buf) )
+		check_pointer<std::string>( ps, vs_end );
+		astd::strtok_s(buf, *ps, " \t;,");
+		if( !astd::is_integer( buf[0] ) || buf.size() != 1 )
 		{
-			error_msg( buf, vs[i], "ecp_parser");
-			std::cerr << "line isn't ecp function" << std::endl;
+			error_msg( buf, *ps, "ecpF_parser");
+			std::cerr << "line isn't integer" << std::endl;
 			exit(1);
 		}
-		ecpFunction_parse<T>( sl_ecp[i], buf );
+		if( ecpFunction_parse<T>( sl_ecp[i], buf, ++ps, vs_end ) )
+			exit(1);
+		ps += sl_ecp[i].size();
 	}
+	return ps-vs;
 }
 
 template<class T>
@@ -139,24 +147,99 @@ int ecp_parse(semilocal_ecp<T> & sl_ecp, std::vector<std::string> & buf, std::st
 	sl_ecp.atom() = buf[1];
 	sl_ecp.core() = astd::stoi(buf[2]);
 	sl_ecp.n_sc() = astd::stoi(buf[3]);
-	sl_ecp.n_so() = astd::stoi(buf[4]);
-	sl_ecp.resize( sl_ecp.n_sc() + sl_ecp.n_so() + 1 );
-	ecpF_parse<T>( sl_ecp, buf, vs+1, vs_end );
-	return 0;
+	if( buf.size() > 4 ) sl_ecp.n_so() = astd::stoi(buf[4]);
+	else sl_ecp.n_so() = 0;
+	return ecpF_parse<T>( sl_ecp, buf, vs+1, vs_end );
 }
 
 int read_lines(vector<string> & vs, char const * file)
 {
 	ifstream inp( file );
-	if( !inp.is_open() ) return 1;
+	if( !inp.is_open() )
+		return 1;
 	string s;
+	std::vector<std::string> buf;
+	buf.reserve(4);
 	vs.clear();
 	while( getline(inp, s) )
 	{
 		if( astd::is_comment( s, '!') || astd::isStrEmpty( s ) ) continue;
-		vs.push_back( s );
+		astd::strtok_s( buf, astd::cut_comment(s, '!'), ";");
+		for(int i = 0; i < buf.size(); ++i)
+			if( !astd::isStrEmpty( buf[i] ) ) vs.push_back( buf[i] );
+	}
+	if( vs.size() == 0 )
+	{
+		std::cerr << "Error: [read] in file \"" << file << "\" no basis found" << std::endl;
+		exit(1);
 	}
 	return 0;
+}
+
+template<class T>
+void print_ecp(std::ostream & out, vector<semilocal_ecp<T> > const & atom_ecp)
+{
+	semilocal_ecp<T> const * p_ecp;
+	ecp_function<T> const * p_ecpf;
+	int prec = 12, w = prec + 8;
+	out.precision( prec );
+	out.setf( std::ios::scientific );
+	for(int i = 0; i < atom_ecp.size(); ++i)
+	{
+		p_ecp = &atom_ecp[i];
+		out <<  std::setw(3) << "" << "ECP" << std::setw(4) << p_ecp->atom() <<
+			std::setw(4) << p_ecp->core() <<
+			std::setw(4) << p_ecp->n_sc() <<
+			std::setw(4) << p_ecp->n_so() << std::endl;
+		for(int j = 0; j < p_ecp->size(); ++j)
+		{
+			p_ecpf = &(p_ecp->operator[](j));
+			out << std::setw(4) << p_ecpf->size() << endl;
+			for(int k = 0; k < p_ecpf->size(); ++k)
+			{
+				out <<  std::setw(4) << (*p_ecpf)[k].n() <<
+					std::setw(w) << (*p_ecpf)[k].alp() <<
+					std::setw(w) << (*p_ecpf)[k].d() << std::endl;
+			}
+		}
+		out << std::endl;
+	}
+}
+
+template<class T>
+void print_basis(std::ostream & out, vector<basis_shell<T> > const & atom_basis)
+{
+	basis_shell<T> const * p_bas;
+	basis_function<T> const * p_bf;
+	int prec = 10, w = prec + 8;
+	out.precision( prec );
+	out.setf( std::ios::scientific );
+	for(int i = 0; i < atom_basis.size(); ++i)
+	{
+		p_bas = &atom_basis[i];
+		out <<  std::setw(4) << astd::spd( p_bas->shell() ) << std::setw(4) << p_bas->atom() <<
+			std::setw(4) << p_bas->alp().size() <<
+			std::setw(4) << p_bas->size() << std::endl;
+		// alphas
+		for(int j = 0; j < p_bas->alp().size(); ++j)
+		{
+			if( j%8==0 && j ) out << std::endl;
+			out << std::setw(w) << p_bas->alp(j);
+		}
+		out << std::endl;
+		//
+		for(int j = 0; j < p_bas->size(); ++j)
+		{
+			p_bf = &(p_bas->operator[](j));
+			out << std::setw(2) << p_bf->size() << endl;
+			for(int k = 0; k < p_bf->size(); ++k)
+			{
+				out <<  std::setw(w) << p_bf->get_alp(k) <<
+					std::setw(w) << p_bf->get_d(k) << std::endl;
+			}
+		}
+		out << std::endl;
+	}
 }
 
 //-------------------------- MOLPRO BASIS PARSE ----------------------------//
@@ -203,11 +286,13 @@ int basis_parse(char const * file)
 		if( ins_type == 2 )// ecp
 		{
 			std::cerr << std::setw(2) << i << " " << vs[i] << std::endl;
-			ecp_parse<T>( sl_ecp, buf, &vs[i], ps_end );
+			size = ecp_parse<T>( sl_ecp, buf, &vs[i], ps_end );
 			atom_ecp.push_back( sl_ecp );
-			i += sl_ecp.size();
+			i += size;
 		}
 	}
+	print_ecp<T>(cout, atom_ecp);
+	print_basis<T>(cout, atom_basis);
 	return 0;
 }
 int parse_d(char const * file)

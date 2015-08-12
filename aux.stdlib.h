@@ -15,7 +15,8 @@ namespace astd
 	bool is_c2ii(std::string const & s);
 	bool is_word(const std::string &);
 	bool is_spd(const char &);
-	int spd(const char & c);
+	int shell(const char & c);
+	char spd(const int & _shell);
 	//
 	bool is_shell(std::vector<std::string> const & );
 	bool is_funct(std::vector<std::string> const & );
@@ -147,7 +148,16 @@ bool astd::is_spd(char const & c)
 	return false;
 }
 
-int astd::spd(const char & c)
+char astd::spd(const int & n)
+{
+	char shell[] = "spdfghijklmn";
+	int len = strlen( shell );
+	if( n >= len || n < 0 )
+		return 'n';
+	return shell[n];
+}
+
+int astd::shell(const char & c)
 {
 	char shell[] = "spdfghijklmn", * p = shell;
 	int len = strlen( shell );
@@ -194,29 +204,20 @@ bool astd::is_funct(std::vector<std::string> const & vs)
 
 bool astd::is_ecp(std::vector<std::string> const & vs)
 {
-	if( vs.size() != 5 ) return false;
+	if( vs.size() < 4 || vs.size() > 5 ) return false;
 	//if( vs.size() < 5 ) return false;
 	if( !astd::is_word(vs[0]) || !astd::is_word( vs[1] ) ) return false;
-	if( vs[0] != "ecp" && vs[0] != "ECP" ) return false;// FIXME: check if vs[0] is "ecp"
+	if( vs[0] != "ecp" && vs[0] != "ECP" ) return false;// FIXME: check if vs[0] is "Ecp", "eCp", "ecP", "eCP", "ECp", EcP"
 	for(int i = 2; i < vs.size(); ++i)
 		if( !astd::is_integer( vs[i] ) ) return false;
 	return true;
 }
 bool astd::is_ecpFunct(std::vector<std::string> const & vs)
 {
-	if( vs.size() < 4 ) return false;
-	if( !astd::is_integer( vs[0] ) ) return false;
-	if( (vs.size()-1)%3 ) return false;
-	int size = (vs.size()-1)/3;
-	if( astd::stoi( vs[0] ) != size ) return false;
-	std::string const * p_s = &vs[1];
-	for(int i = 0; i < size; ++i)
-	{
-		if( !astd::is_integer(*p_s) ) return false;
-		if( !astd::is_number(*(p_s + 1)) ) return false;
-		if( !astd::is_number(*(p_s + 2)) ) return false;
-		p_s += 3;
-	}
+	if( vs.size() != 3 ) return false;
+	if( !astd::is_integer(vs[0]) ) return false;
+	if( !astd::is_number(vs[1]) ) return false;
+	if( !astd::is_number(vs[2]) ) return false;
 	return true;
 }
 

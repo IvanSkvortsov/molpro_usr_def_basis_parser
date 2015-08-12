@@ -10,6 +10,10 @@ protected:
 	T const * alp, * alp_0;
 public:
 	basis_function():d(), alp(0), alp_0(0){}
+	~basis_function()
+	{
+		alp = 0; alp_0 = 0;
+	}
 	// alp
 	std::size_t diff()const{return alp - alp_0;}
 	//T & get_alp(std::size_t i){return alp[i];}
@@ -45,6 +49,25 @@ protected:
 	std::string _atom;
 public:
 	basis_shell():_alp(), _bf(), _shell(0){}
+	basis_shell(basis_shell<T> const & v):_alp(v._alp), _bf(v._bf), _shell(v._shell), _atom(v._atom)
+	{
+		for(int i = 0; i < _bf.size(); ++i)
+			_bf[i].set_alp( &_alp[0], v._bf[i].diff() );
+	}
+	~basis_shell()
+	{
+		_shell = 0;
+	}
+	basis_shell<T> & operator=(basis_shell<T> const & v)
+	{
+		if( this == &v ) return *this;
+		_alp = v.alp();
+		_bf = v.bf();
+		_shell = v.shell();
+		_atom = v.atom();
+		for(int i = 0; i < _bf.size(); ++i)
+			_bf[i].set_alp( &_alp[0], v._bf[i].diff() );
+	}
 	// bf
 	std::size_t size()const{return _bf.size();}
 	void resize(std::size_t __size){_bf.resize( __size);}
@@ -53,6 +76,8 @@ public:
 	void push_back(basis_function<T> const & __bf_i){_bf.push_back( __bf_i );}
 	basis_function<T> & operator[](std::size_t i){return _bf[i];}
 	basis_function<T> const & operator[](std::size_t i)const{return _bf[i];}
+	std::vector<basis_function<T> > & bf(){return _bf;}
+	std::vector<basis_function<T> > const & bf()const{return _bf;}
 	// shell
 	int & shell(){return _shell;}
 	int const & shell()const{return _shell;}
