@@ -50,6 +50,7 @@ public:
 	void resize(std::size_t __size){_bf.resize( __size);}
 	void reserve(std::size_t __size){_bf.reserve( __size);}
 	void clear(){_bf.clear();}
+	void push_back(basis_function<T> const & __bf_i){_bf.push_back( __bf_i );}
 	basis_function<T> & operator[](std::size_t i){return _bf[i];}
 	basis_function<T> const & operator[](std::size_t i)const{return _bf[i];}
 	// shell

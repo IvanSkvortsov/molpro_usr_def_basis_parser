@@ -1,5 +1,7 @@
 #ifndef __SEMI_LOCAL_ECP_H__
 #define __SEMI_LOCAL_ECP_H__
+#include<vector>
+#include<string>
 
 template<class T>
 struct ecp_gauss
@@ -31,18 +33,23 @@ template<class T>
 struct semilocal_ecp
 {
 	std::vector<ecp_function<T> > _sl_ecp;
-	int _n_sc, _n_so;
+	int _n_sc, _n_so, _core;
+	std::string _atom;
 	//
-	semilocal_ecp():_sl_ecp(), _n_sc(0), _n_so(0){}
+	semilocal_ecp():_sl_ecp(), _n_sc(0), _n_so(0), _core(0){}
 	//
 	std::size_t size()const{return _sl_ecp.size();}
 	ecp_function<T> & operator[](std::size_t i){return _sl_ecp[i];}
-	ecp_function<T> const & operator[](std::size_t i)const{return _sl_ec[i];}
+	ecp_function<T> const & operator[](std::size_t i)const{return _sl_ecp[i];}
 	void resize(std::size_t __size){ _sl_ecp.resize( __size);}
 	//
 	int & n_sc(){return _n_sc;}
 	int & n_so(){return _n_so;}
+	int & core(){return _core;}
 	int const & n_sc()const{return _n_sc;}
 	int const & n_so()const{return _n_so;}
+	int const & core()const{return _core;}
+	std::string & atom(){return _atom;}
+	std::string const & atom()const{return _atom;}
 };
 #endif//__SEMI_LOCAL_ECP_H__

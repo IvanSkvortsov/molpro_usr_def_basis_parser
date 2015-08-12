@@ -202,7 +202,7 @@ bool astd::is_ecp(std::vector<std::string> const & vs)
 		if( !astd::is_integer( vs[i] ) ) return false;
 	return true;
 }
-bool is_ecpFunct(std::vector<std::string> const & vs)
+bool astd::is_ecpFunct(std::vector<std::string> const & vs)
 {
 	if( vs.size() < 4 ) return false;
 	if( !astd::is_integer( vs[0] ) ) return false;
