@@ -176,6 +176,66 @@ int read_lines(vector<string> & vs, char const * file)
 	return 0;
 }
 
+int read_basis(vector<string> & vs, vector<string> const & lines)
+{
+	std::vector<std::string> buf;
+	buf.reserve( 3 );
+	vs.reserve( lines.size() );
+	vs.clear();
+	int _start = 0, _end = 0, i = 0;
+	std::string const * ps = &lines[0], *ps_end = &lines[lines.size()];
+	for(i = 0; i < lines.size(); ++i)
+	{
+		_start = astd::is_basis_scope(ps++, ps_end);
+		if( _start == 0 ) continue;
+		if( _start == 1 ) break;
+		if( _start == 2 ) {++i; break;}
+	}
+	if( _start == 0 )
+	{
+		std::cerr << "Error: [read_basis] no basis was found" << std::endl;
+		exit(1);
+	}
+	ps = &lines[i];
+	_start = i;
+	for(; i < lines.size(); ++i)
+	{
+		_end = astd::is_close_scope( *ps++ );
+		if( _end == 0 ) continue;
+		break;
+	}
+	if( _end == 0 )
+	{
+		std::cerr << "Error: [read_basis] no basis scope not closed" << std::endl;
+		exit(1);
+	}
+	ps = &lines[i];
+	_end = i;
+	int pos_op = 0, pos_cl = 0;
+	if( _start == _end )
+	{
+		pos_op = ps->find("{");
+		pos_cl = ps->find("}");
+		astd::strtok_s( buf, ps->substr( pos_op+1, pos_cl-1 ), ";");
+		for(int j = 0; j < buf.size(); ++j)
+			if( !astd::isStrEmpty(buf[j]) ) vs.push_back(buf[j]);
+	}
+	ps = &lines[_start];
+	pos_op = ps->find("{");
+	astd::strtok_s( buf, ps->substr( pos_op+1 ), ";");
+	for(int j = 0; j < buf.size(); ++j)
+		if( !astd::isStrEmpty(buf[j]) ) vs.push_back(buf[j]);
+	for(i = _start+1; i < _end; ++i)
+		vs.push_back( lines[i] );
+	ps = &lines[_end  ];
+	if( pos_cl = ps->find("}") == 0 )
+		return 0;
+	astd::strtok_s( buf, ps->substr(0,  pos_cl-1 ), ";");
+	for(int j = 0; j < buf.size(); ++j)
+		if( !astd::isStrEmpty(buf[j]) ) vs.push_back(buf[j]);
+	return 0;
+}
+
 template<class T>
 void print_ecp(std::ostream & out, vector<semilocal_ecp<T> > const & atom_ecp)
 {
@@ -227,11 +287,12 @@ void print_basis(std::ostream & out, vector<basis_shell<T> > const & atom_basis)
 			out << std::setw(w) << p_bas->alp(j);
 		}
 		out << std::endl;
-		//
+		// functions
 		for(int j = 0; j < p_bas->size(); ++j)
 		{
 			p_bf = &(p_bas->operator[](j));
-			out << std::setw(2) << p_bf->size() << endl;
+			out <<  std::setw(2) << p_bf->size() <<
+				std::setw(4) << 1+p_bf->diff() << '.' << p_bf->diff() + p_bf->size()<< std::endl;
 			for(int k = 0; k < p_bf->size(); ++k)
 			{
 				out <<  std::setw(w) << p_bf->get_alp(k) <<
@@ -242,6 +303,14 @@ void print_basis(std::ostream & out, vector<basis_shell<T> > const & atom_basis)
 	}
 }
 
+void heh_basis(vector<string> const & vs, char const file[] = "some.basis.out")
+{
+	ofstream out( file );
+	out << "basis={";
+	for(int i = 0; i < vs.size(); ++i)
+		out << vs[i] << ";";
+	out << "}";
+}
 //-------------------------- MOLPRO BASIS PARSE ----------------------------//
 template<class T>
 int basis_parse(char const * file)
@@ -252,15 +321,20 @@ int basis_parse(char const * file)
 	semilocal_ecp<T> sl_ecp;
 	//
 	ifstream inp( file );
-	vector<string> vs;
-	if( read_lines( vs, file ) )
+	vector<string> lines, vs;
+	if( read_lines( lines, file ) )
 	{
 		cerr << "Error: [basis_parse] can't open file '" << file << "'" << endl;
 		return 1;
 	}
-	for(int i = 0; i < vs.size(); ++i)
-		std::cout << vs[i] << std::endl;
-	std::cout << "size : " << vs.size() << std::endl << std::endl;
+	//for(int i = 0; i < lines.size(); ++i)
+	//	std::cout << lines[i] << std::endl;
+	//std::cout << "size : " << lines.size() << std::endl << std::endl;
+	read_basis( vs, lines );
+	//for(int i = 0; i < vs.size(); ++i)
+	//	std::cout << vs[i] << std::endl;
+	//std::cout << "size : " << vs.size() << std::endl << std::endl;
+	//heh_basis( vs );
 	std::string const * ps_end = &vs[vs.size()];
 	std::vector<std::string> buf;
 	int ins_type = 0, size = 0;

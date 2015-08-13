@@ -22,6 +22,10 @@ namespace astd
 	bool is_funct(std::vector<std::string> const & );
 	bool is_ecp(std::vector<std::string> const &);
 	bool is_ecpFunct(std::vector<std::string> const &);
+	//
+	int is_basis_scope(std::string const * s, std::string const * s_end);
+	int is_close_scope(std::string const & s);
+	int is_open_scope(std::string const & s);
 
 	bool is_comment(const std::string &, const char);
 	std::string cut_comment(const std::string &, const char);
@@ -219,6 +223,59 @@ bool astd::is_ecpFunct(std::vector<std::string> const & vs)
 	if( !astd::is_number(vs[1]) ) return false;
 	if( !astd::is_number(vs[2]) ) return false;
 	return true;
+}
+
+static void basis_scope_err_msg(std::string const & s, std::string const & msg)
+{
+	std::cerr << "Error: [is_basis_scope]" << std::endl;
+	std::cerr << "expected \"\\s*basis\\s*=\\s*\\{\\s*\", but \"" << msg << "\" not found" << std::endl;
+	std::cerr << s << std::endl;
+	exit(1);
+}
+
+int astd::is_open_scope(std::string const & s)
+{
+	int pos = s.find_first_not_of(" \t");
+	if( pos == -1 )
+		return 0;
+	if(s.compare(pos, 1, "{") != 0)// not found "{"
+		return 0;
+	return 1;
+}
+
+int astd::is_basis_scope(std::string const * s, std::string const * s_end)
+{
+	int pos = s->find_first_not_of(" \t", pos);
+	if( pos == -1 )
+		return 0;
+	if(s->compare(pos, 5, "basis") != 0)// not found "basis"
+		return 0;
+	pos = s->find_first_not_of(" \t", pos+5);
+	if( pos == -1 )
+		basis_scope_err_msg(*s, "=");
+	if( s->compare(pos, 1, "=") != 0 )
+		basis_scope_err_msg(*s, "=");
+	pos = s->find_first_not_of(" \t", pos+1);
+	if( pos != -1 )
+	{
+		if( s->compare(pos, 1, "{") != 0 ) basis_scope_err_msg(*s, "{");
+		return 1;
+	}
+	if( s+1 < s_end )
+		basis_scope_err_msg( *s, "{");
+	if( !astd::is_open_scope( *(s+1) ) )
+		basis_scope_err_msg(*(s+1), "{");
+	return 2;
+}
+
+int astd::is_close_scope(std::string const & s)
+{
+	int pos = s.find_last_not_of(" \t");
+	if( pos == -1 )
+		return 0;
+	if(s.compare(pos, 1, "}") != 0)// not found "}"
+		return 0;
+	return 1;
 }
 
 template<class vector_type>
